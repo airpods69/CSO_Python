@@ -1,13 +1,15 @@
 import numpy as np
 import numpy.matlib as matlib
+
 from benchmarks.benchmark_func import benchmarks
+
+np.random.seed(1337)
 
 d = 1000
 maxfe = d * 5000
 
 runnum = 1
 
-# 2 isliye cause only 2 benchmarks for now?
 results = np.zeros((2, runnum))
 
 
@@ -15,6 +17,9 @@ m = None
 lu = [[]]
 
 for funcid in range (1, 2 + 1):
+
+    if funcid == 2:
+        break
 
     n = d
     initial_flag = 0
@@ -31,7 +36,7 @@ for funcid in range (1, 2 + 1):
         if d >= 2000:
             phi = 0.2
         elif d >= 1000:
-            phi = 0.5
+            phi = 0.15
         elif d >= 500:
             phi = 0.1
         else:
@@ -62,7 +67,7 @@ for funcid in range (1, 2 + 1):
         XRRmin = matlib.repmat(lu[0], m, 1)
         XRRmax = matlib.repmat(lu[1], m, 1)
 
-        p = XRRmin + np.multiply((XRRmax - XRRmin) , np.random.rand(m,d))
+        p = XRRmin + np.multiply(np.subtract(XRRmax, XRRmin), np.random.rand(m,d))
 
         if funcid == 1:
             fitness = benchmark.sphere_shift_func(x = p)
@@ -80,15 +85,18 @@ for funcid in range (1, 2 + 1):
 
         while FES < maxfe:
 
-            rlist = np.random.permutation(m)
-            rpairs = np.vstack([rlist[0:int(np.ceil(m/2))], rlist[m//2: m]])
+            rlist = np.random.permutation(m).T
+            rpairs = np.vstack([rlist[0:int(np.ceil(m/2))], rlist[m//2: m]]).T
 
-            center = np.ones((int(np.ceil(m/2)), 1)) * np.mean(p)
+            _1 = np.ones((int(np.ceil(m/2)), 1))
+            _2 = np.mean(p,axis=0).reshape(1, -1)
 
-            mask = fitness[rpairs[:][0]] > fitness[rpairs[:][1]]
+            center =  _1 @ _2 
 
-            losers = np.multiply(mask, rpairs[:][0]) + np.multiply(np.logical_not(mask), rpairs[:][1])
-            winners = np.multiply(np.logical_not(mask), rpairs[:][0]) + np.multiply(mask, rpairs[:][1])
+            mask = fitness[rpairs[:,0]] > fitness[rpairs[:,1]]
+
+            losers = (np.multiply(mask, rpairs[:, 0]) + np.multiply(np.logical_not(mask), rpairs[:, 1])).T
+            winners = (np.multiply(np.logical_not(mask), rpairs[:, 0]) + np.multiply(mask, rpairs[:, 1])).T
 
             randco1 = np.random.rand(int(np.ceil(m/2)), d);
             randco2 = np.random.rand(int(np.ceil(m/2)), d);
@@ -98,20 +106,21 @@ for funcid in range (1, 2 + 1):
             # exit()
 
             x = np.multiply(randco1, v[losers])
-            y = np.multiply(randco2, p[winners]) - p[losers] + phi * np.multiply(randco3, (center - p[losers]))
+            y = np.multiply(randco2, p[winners] - p[losers]) + phi * np.multiply(randco3, (center - p[losers]))
 
             v[losers] = x + y
             
             p[losers] = p[losers] + v[losers]
+            
 
             for i in range(0, int(np.ceil(m/2))):
-                x = np.maximum(p[losers[i]], lu[0])
-                y = np.minimum(p[losers[i]], lu[1])
-                p[losers[i]] = x
-                p[losers[i]] = y
+                x = np.maximum(p[losers[i], :], lu[0, :])
+                y = np.minimum(p[losers[i], :], lu[1, :])
+                p[losers[i], :] = x
+                p[losers[i], :] = y
 
             if funcid == 1:
-                fitness[losers] = benchmark.sphere_shift_func(x = p[losers])
+                fitness[losers] = benchmark.sphere_shift_func(x = p[losers, :])
 
             elif funcid == 2:
                 fitness[losers] = benchmark.schwefel_func(x = p[losers])
@@ -120,7 +129,6 @@ for funcid in range (1, 2 + 1):
 
             print("Best Fitness: {}".format(bestever))
             FES += int(np.ceil(m/2))
-            print(FES)
 
             gen += 1
 
