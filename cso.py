@@ -88,10 +88,12 @@ for funcid in range (1, 2 + 1):
             rlist = np.random.permutation(m).T
             rpairs = np.vstack([rlist[0:int(np.ceil(m/2))], rlist[m//2: m]]).T
 
+
+
             _1 = np.ones((int(np.ceil(m/2)), 1))
             _2 = np.mean(p,axis=0).reshape(1, -1)
 
-            center =  _1 @ _2 
+            center =  _1 @ _2
 
             mask = fitness[rpairs[:,0]] > fitness[rpairs[:,1]]
 
@@ -109,9 +111,9 @@ for funcid in range (1, 2 + 1):
             y = np.multiply(randco2, p[winners] - p[losers]) + phi * np.multiply(randco3, (center - p[losers]))
 
             v[losers] = x + y
-            
+
             p[losers] = p[losers] + v[losers]
-            
+
 
             for i in range(0, int(np.ceil(m/2))):
                 x = np.maximum(p[losers[i], :], lu[0, :])
